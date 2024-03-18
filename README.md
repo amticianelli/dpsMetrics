@@ -1,10 +1,17 @@
 # dpsMetrics
 
+## Architecture
+![alt text](https://github.com/amticianelli/dpsMetrics/img/image.png)
+
 ## Features
 * Number of group registrations per DPS instance
 * Number of devices per Hub
 * Comparison between DPS registrations and Hub devices
 * List of devices without DPS and DPS registrations without an assigned hub
+
+## Limitations
+* It may take some time to retrieve all the devices / registrations, seeing that we are using paginated REST APIs
+* Shared access keys are at the momment the only possible way of authenticating
 
 ## How to use it
  
