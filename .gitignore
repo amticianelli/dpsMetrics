@@ -2,6 +2,7 @@
 data.yaml
 devicesWithoutDPS.csv
 regWithoutHubs.csv
+duplicateRegistrations.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

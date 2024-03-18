@@ -244,10 +244,12 @@ print(f'TOTAL NUMBER OF REGISTRATIONS: {len(allRegistrations)}')
 dfRegistrations = pd.DataFrame(allRegistrations)
 allRegistrations = []
 
+
+
 print(duckdb.query("""
 SELECT
   dpsname,
-  COUNT(1) devicesNotInHub
+  COUNT(1) registrationsNotInHub
 FROM dfRegistrations dR
 LEFT JOIN dfHubDevices dD ON 1=1
   AND dR.assignedHub = dD.iothub
@@ -270,6 +272,43 @@ GROUP BY
   dD.iothub
 """))
 
+print(duckdb.query("""
+SELECT
+  COUNT(1) AS registrationsWithHubs
+FROM dfRegistrations dR
+JOIN dfHubDevices dD ON 1=1
+  AND dR.assignedHub = dD.iothub
+  AND dR.deviceId = dD.deviceId
+"""))
+
+print(duckdb.query("""
+SELECT COUNT(1) duplicateDevices FROM(
+SELECT
+  dpsname,
+  dR.deviceId,
+  COUNT(1) sameRegistrationForMultipleHubs
+FROM dfRegistrations dR
+JOIN dfHubDevices dD ON 1=1
+  AND dR.assignedHub = dD.iothub
+  AND dR.deviceId = dD.deviceId
+GROUP BY dpsname, dR.deviceId
+HAVING COUNT(1) > 1)
+"""))
+
+
+queryDuplicateRegistrations = """
+SELECT
+  dpsname,
+  dR.deviceId,
+  COUNT(1) sameRegistrationForMultipleHubs
+FROM dfRegistrations dR
+JOIN dfHubDevices dD ON 1=1
+  AND dR.assignedHub = dD.iothub
+  AND dR.deviceId = dD.deviceId
+GROUP BY dpsname, dR.deviceId
+HAVING COUNT(1) > 1
+"""
+
 queryDevicesWithoutDPS = """
 SELECT
   dD.*
@@ -282,15 +321,13 @@ WHERE dR.registrationId IS NULL
 
 queryRegistrationsWithoutHubs = """
 SELECT
-  dpsname,
-  COUNT(1) devicesNotInHub
+  dR.*
 FROM dfRegistrations dR
 LEFT JOIN dfHubDevices dD ON 1=1
   AND dR.assignedHub = dD.iothub
   AND dR.deviceId = dD.deviceId
 WHERE 1=1
   AND dD.iothub IS NULL
-GROUP BY dpsname
 """
 
 # Using Arrow to compress the results
@@ -299,3 +336,6 @@ df = tbl.to_pandas().to_csv('devicesWithoutDPS.csv')
 
 tbl = duckdb.query(queryRegistrationsWithoutHubs).arrow()
 df = tbl.to_pandas().to_csv('regWithoutHubs.csv')
+
+tbl = duckdb.query(queryDuplicateRegistrations).arrow()
+df = tbl.to_pandas().to_csv('duplicateRegistrations.csv')
