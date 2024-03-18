@@ -1,7 +1,7 @@
 # dpsMetrics
 
 ## Architecture
-![alt text](https://github.com/amticianelli/dpsMetrics/img/image.png)
+![alt text](https://github.com/amticianelli/dpsMetrics/blob/main/img/image.png)
 
 ## Features
 * Number of group registrations per DPS instance
