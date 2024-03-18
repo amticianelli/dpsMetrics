@@ -110,7 +110,7 @@ async def getDPSData(dpsname, key, policy_name, con_test=False):
 
 async def getHubData(hubname, key, policy_name, con_test=False):
   defaultUri = f'{hubname}.azure-devices-provisioning.net'
-  allDevices: list[dict] = []
+  allDevices = []
 
   huburlReq: str = f'https://{hubname}.azure-devices.net/devices/query?api-version=2020-09-30'
 
@@ -208,7 +208,7 @@ asyncio.run(list_hub_devices())
 asyncio.run(list_dps_registrations())
 
 #### IOTHUB ####
-allDevices: list[dict] = []
+allDevices = []
 
 # List devices from all hubs:
 async def list_all_hub_devices():
@@ -227,7 +227,7 @@ allDevices = []
 
 #### DPS ####
 
-allRegistrations: list[dict] = []
+allRegistrations = []
 
 # List devices from all hubs:
 async def list_all_dps_registrations():
