@@ -20,6 +20,7 @@ import httpx
 from httpx import ConnectTimeout
 import time as t
 import sys
+import datetime
 
 
 sys.stdin.reconfigure(encoding='utf-8')
@@ -206,6 +207,8 @@ async def getDPSGroups(dpsname, uri, key, policy_name):
 
   return finalResult
 
+print(f"Initializing {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
 #### CON TEST ####
 # List devices from all hubs:
 async def list_hub_devices():
@@ -358,3 +361,5 @@ df = tbl.to_pandas().to_csv('regWithoutHubs.csv')
 
 tbl = duckdb.query(queryDuplicateRegistrations).arrow()
 df = tbl.to_pandas().to_csv('duplicateRegistrations.csv')
+
+print(f"Finishing {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
