@@ -19,7 +19,11 @@ import asyncio
 import httpx
 from httpx import ConnectTimeout
 import time as t
+import sys
 
+
+sys.stdin.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Load data from YAML file
 with open('data.yaml', 'r') as file:
