@@ -17,6 +17,8 @@ import pandas as pd
 import yaml
 import asyncio
 import httpx
+from httpx import ConnectTimeout
+import time as t
 
 
 # Load data from YAML file
@@ -69,12 +71,23 @@ async def getDPSData(dpsname, key, policy_name, con_test=False):
       }
 
       while True:
-        async with httpx.AsyncClient() as client:
-          result = await client.post(
-            url=dpsurl,
-            json=payload,
-            headers=header
-          )
+        try:
+          async with httpx.AsyncClient() as client:
+            result = await client.post(
+              url=dpsurl,
+              json=payload,
+              headers=header,
+              timeout=None
+            )
+        except BaseException as e:
+          if isinstance(e, ConnectTimeout):
+            print(f'Connection to {dpsname} and group {group} timed out')
+            t.sleep(10)
+            continue
+          else:
+            print(f'Connection to {dpsname} and group {group} failed')
+            t.sleep(10)
+            continue
 
         if result.status_code == 401:
           saskey: str = generate_sas_token(defaultUri, key, policy_name)
@@ -128,7 +141,8 @@ async def getHubData(hubname, key, policy_name, con_test=False):
       result = await client.post(
         url=huburlReq,
         json={'query': 'SELECT deviceId FROM devices'},
-        headers=header
+        headers=header,
+        timeout=None
       )
 
     if result.status_code == 401:
@@ -176,7 +190,8 @@ async def getDPSGroups(dpsname, uri, key, policy_name):
     result = await client.post(
       url=dpsGroupReq,
       headers=header,
-      json={'query': ''}
+      json={'query': ''},
+      timeout=None
     )
     result = result.json()
 
