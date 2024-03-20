@@ -110,7 +110,7 @@ async def getDPSData(dpsname, key, policy_name, con_test=False):
         for idx, registration in enumerate(resultDict):
           del resultDict[idx]['createdDateTimeUtc']
           del resultDict[idx]['substatus']
-          del resultDict[idx]['lastUpdatedDateTimeUtc']
+          #del resultDict[idx]['lastUpdatedDateTimeUtc']
           del resultDict[idx]['etag']
           resultDict[idx]['dpsname'] = dpsname
           resultDict[idx]['assignedHub'] = resultDict[idx]['assignedHub'].split('.')[0]
@@ -304,7 +304,7 @@ JOIN dfHubDevices dD ON 1=1
 """))
 
 print(duckdb.query("""
-SELECT COUNT(1) duplicateDevices FROM(
+SELECT COUNT(1) duplicateDevicesByGroup FROM(
 SELECT
   dpsname,
   dR.deviceId,
@@ -317,18 +317,43 @@ GROUP BY dpsname, dR.deviceId
 HAVING COUNT(1) > 1)
 """))
 
-
-queryDuplicateRegistrations = """
+print(duckdb.query("""
+SELECT COUNT(1) duplicateDevicesByDPS FROM(
 SELECT
-  dpsname,
   dR.deviceId,
+  dR.assignedHub,
   COUNT(1) sameRegistrationForMultipleHubs
 FROM dfRegistrations dR
 JOIN dfHubDevices dD ON 1=1
   AND dR.assignedHub = dD.iothub
   AND dR.deviceId = dD.deviceId
-GROUP BY dpsname, dR.deviceId
-HAVING COUNT(1) > 1
+GROUP BY dR.deviceId, dR.assignedHub
+HAVING COUNT(1) > 1)
+"""))
+
+
+print("Exporting to CSV...")
+queryDuplicateRegistrations = """
+WITH 
+  deviceCount as (SELECT
+      dR.deviceId,
+      dR.assignedHub,
+      COUNT(1) sameRegistrationForMultipleHubs
+    FROM dfRegistrations dR
+    JOIN dfHubDevices dD ON 1=1
+      AND dR.assignedHub = dD.iothub
+      AND dR.deviceId = dD.deviceId
+    GROUP BY dR.deviceId,dR.assignedHub
+    HAVING COUNT(1) > 1)
+SELECT 
+  dC.deviceId,
+  dC.sameRegistrationForMultipleHubs, 
+  dR.dpsname, 
+  dR.lastUpdatedDateTimeUtc
+FROM deviceCount dC
+JOIN dfRegistrations dR ON 1=1
+  AND dC.deviceId = dR.deviceId
+  AND dR.assignedHub = dC.assignedHub
 """
 
 queryDevicesWithoutDPS = """
