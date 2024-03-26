@@ -113,6 +113,7 @@ async def getDPSData(dpsname, key, policy_name, con_test=False):
           #del resultDict[idx]['lastUpdatedDateTimeUtc']
           del resultDict[idx]['etag']
           resultDict[idx]['dpsname'] = dpsname
+          resultDict[idx]['group'] = group
           resultDict[idx]['assignedHub'] = resultDict[idx]['assignedHub'].split('.')[0]
 
         allRegistrations = allRegistrations + resultDict
@@ -304,7 +305,7 @@ JOIN dfHubDevices dD ON 1=1
 """))
 
 print(duckdb.query("""
-SELECT COUNT(1) duplicateDevicesByGroup FROM(
+SELECT COUNT(1) duplicatedDevicesByGroup FROM(
 SELECT
   dpsname,
   dR.deviceId,
@@ -318,7 +319,7 @@ HAVING COUNT(1) > 1)
 """))
 
 print(duckdb.query("""
-SELECT COUNT(1) duplicateDevicesByDPS FROM(
+SELECT COUNT(1) duplicatedDevicesByDPS, sum(sameRegistrationForMultipleHubs) totalDuplicatedRegistrations FROM(
 SELECT
   dR.deviceId,
   dR.assignedHub,
@@ -348,7 +349,9 @@ WITH
 SELECT 
   dC.deviceId,
   dC.sameRegistrationForMultipleHubs, 
-  dR.dpsname, 
+  dR.dpsname,
+  dR.group, 
+  dC.assignedHub,
   dR.lastUpdatedDateTimeUtc
 FROM deviceCount dC
 JOIN dfRegistrations dR ON 1=1
