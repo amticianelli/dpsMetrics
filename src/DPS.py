@@ -47,6 +47,8 @@ class DPS(IoT):
                 del reg['etag']
                 reg['dpsname'] = self.name
                 reg['assignedHub'] = reg['assignedHub'].split('.')[0]
+                iot = IoT()
+                iot.addDevice(deviceId = reg['deviceId'], hubName=reg['assignedHub'], dpsName=reg['dpsname'])
             
             self.allRegistrations += response
             self.registrations += response

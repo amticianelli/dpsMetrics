@@ -17,6 +17,8 @@ class HUB(IoT):
         async def responseAnalysis(response):
             for dev in response:
                 dev['iothub'] = self.name
+                iot = IoT()
+                iot.addDevice(deviceId = dev['deviceId'], hubName=dev['iothub'])
 
             self.allDevices += response
             self.devices += response

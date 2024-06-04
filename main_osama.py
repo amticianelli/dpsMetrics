@@ -13,7 +13,7 @@ import yaml
 import asyncio
 from src.DPS import DPS
 from src.HUB import HUB
-from src.IoT import IoT
+from src.IoT import IoT, Device
 from src.helpers import timeis
 import datetime
 
@@ -77,127 +77,105 @@ NUMBER OF UNIQUE REGISTRATIONS: {len(DPS.uniqueRegistrations)}
 NUMBER OF DUPLICATE REGISTRATIONS: {len(DPS.duplicateRegistrations)}
 ### Finished Counting Registrations ###\n\n''')
 
-
-  # Find strand resources
-  for hub in HUBs:
-      for dev in hub.devices:
-          if dev['deviceId'] in IoT.devices.keys():
-              if hub.name not in IoT.devices[dev['deviceId']].hubName:
-                IoT.devices[dev['deviceId']].hubName.append(hub.name)
-          else:
-              IoT.devices[dev['deviceId']] = IoT.Device(deviceId=dev['deviceId'], hubName=[hub.name])
-
-  for dps in DPSs:
-      for reg in dps.registrations:
-          if reg['deviceId'] in IoT.devices.keys():
-              if reg['assignedHub'] not in IoT.devices[reg['deviceId']].hubName:
-                  IoT.devices[reg['deviceId']].hubName.append()
-              if dps.name not in IoT.devices[reg['deviceId']].dpsName:
-                  IoT.devices[reg['deviceId']].dpsName.append(dps.name)
-          else:
-              IoT.devices[reg['deviceId']] = IoT.Device(deviceId=reg['deviceId'], hubName=[reg['assignedHub']], dpsName=[dps.name])
-
-  print(f'Devices without DPS: {iot.getDevicesWithoutDPS()}')
-          
-          
-          
+  for device in iot.devices.values():
+    print(device)
+  # print(f'Devices without DPS: {iot.getDevicesWithoutDPS()}')
+  # print(iot.createDF())
 
 
 
+  # dfHubDevices = pd.DataFrame(HUB.allDevices)
+  # allDevices = []
 
 
-  dfHubDevices = pd.DataFrame(HUB.allDevices)
-  allDevices = []
+  # dfRegistrations = pd.DataFrame(DPS.allRegistrations)
+  # allRegistrations = []
 
 
-  dfRegistrations = pd.DataFrame(DPS.allRegistrations)
-  allRegistrations = []
+  # print(duckdb.query("""
+  # SELECT
+  #   dpsname,
+  #   COUNT(1) registrationsNotInHub
+  # FROM dfRegistrations dR
+  # LEFT JOIN dfHubDevices dD ON 1=1
+  #   AND dR.assignedHub = dD.iothub
+  #   AND dR.deviceId = dD.deviceId
+  # WHERE 1=1
+  #   AND dD.iothub IS NULL
+  # GROUP BY dpsname
+  # """))
 
+  # print(duckdb.query("""
+  # SELECT
+  #   dD.iothub,
+  #   COUNT(1) AS devicesWithoutDPSReg
+  # FROM dfRegistrations dR
+  # RIGHT JOIN dfHubDevices dD ON 1=1
+  #   AND dR.assignedHub = dD.iothub
+  #   AND dR.deviceId = dD.deviceId
+  # WHERE dR.registrationId IS NULL
+  # GROUP BY
+  #   dD.iothub
+  # """))
 
-  print(duckdb.query("""
-  SELECT
-    dpsname,
-    COUNT(1) registrationsNotInHub
-  FROM dfRegistrations dR
-  LEFT JOIN dfHubDevices dD ON 1=1
-    AND dR.assignedHub = dD.iothub
-    AND dR.deviceId = dD.deviceId
-  WHERE 1=1
-    AND dD.iothub IS NULL
-  GROUP BY dpsname
-  """))
+  # print(duckdb.query("""
+  # SELECT
+  #   COUNT(1) AS registrationsWithHubs
+  # FROM dfRegistrations dR
+  # JOIN dfHubDevices dD ON 1=1
+  #   AND dR.assignedHub = dD.iothub
+  #   AND dR.deviceId = dD.deviceId
+  # """))
 
-  print(duckdb.query("""
-  SELECT
-    dD.iothub,
-    COUNT(1) AS devicesWithoutDPSReg
-  FROM dfRegistrations dR
-  RIGHT JOIN dfHubDevices dD ON 1=1
-    AND dR.assignedHub = dD.iothub
-    AND dR.deviceId = dD.deviceId
-  WHERE dR.registrationId IS NULL
-  GROUP BY
-    dD.iothub
-  """))
-
-  print(duckdb.query("""
-  SELECT
-    COUNT(1) AS registrationsWithHubs
-  FROM dfRegistrations dR
-  JOIN dfHubDevices dD ON 1=1
-    AND dR.assignedHub = dD.iothub
-    AND dR.deviceId = dD.deviceId
-  """))
-
-  print(duckdb.query("""
-  SELECT COUNT(1) duplicateDevices FROM(
-  SELECT
-    dpsname,
-    dR.deviceId,
-    COUNT(1) sameRegistrationForMultipleHubs
-  FROM dfRegistrations dR
-  JOIN dfHubDevices dD ON 1=1
-    AND dR.assignedHub = dD.iothub
-    AND dR.deviceId = dD.deviceId
-  GROUP BY dpsname, dR.deviceId
-  HAVING COUNT(1) > 1)
-  """))
+  # print(duckdb.query("""
+  # SELECT COUNT(1) duplicateDevices FROM(
+  # SELECT
+  #   dpsname,
+  #   dR.deviceId,
+  #   COUNT(1) sameRegistrationForMultipleHubs
+  # FROM dfRegistrations dR
+  # JOIN dfHubDevices dD ON 1=1
+  #   AND dR.assignedHub = dD.iothub
+  #   AND dR.deviceId = dD.deviceId
+  # GROUP BY dpsname, dR.deviceId
+  # HAVING COUNT(1) > 1)
+  # """))
 
 
 
-  queryDevicesWithoutDPS = """
-  SELECT
-    dD.*
-  FROM dfRegistrations dR
-  RIGHT JOIN dfHubDevices dD ON 1=1
-    AND dR.assignedHub = dD.iothub
-    AND dR.deviceId = dD.deviceId
-  WHERE dR.registrationId IS NULL
-  """
+  # queryDevicesWithoutDPS = """
+  # SELECT
+  #   dD.*
+  # FROM dfRegistrations dR
+  # RIGHT JOIN dfHubDevices dD ON 1=1
+  #   AND dR.assignedHub = dD.iothub
+  #   AND dR.deviceId = dD.deviceId
+  # WHERE dR.registrationId IS NULL
+  # """
 
-  queryRegistrationsWithoutHubs = """
-  SELECT
-    dR.*
-  FROM dfRegistrations dR
-  LEFT JOIN dfHubDevices dD ON 1=1
-    AND dR.assignedHub = dD.iothub
-    AND dR.deviceId = dD.deviceId
-  WHERE 1=1
-    AND dD.iothub IS NULL
-  """
+  # queryRegistrationsWithoutHubs = """
+  # SELECT
+  #   dR.*
+  # FROM dfRegistrations dR
+  # LEFT JOIN dfHubDevices dD ON 1=1
+  #   AND dR.assignedHub = dD.iothub
+  #   AND dR.deviceId = dD.deviceId
+  # WHERE 1=1
+  #   AND dD.iothub IS NULL
+  # """
 
-  queryDuplicateRegistrations = """
-  SELECT
-    dpsname,
-    dR.deviceId,
-    COUNT(1) sameRegistrationForMultipleHubs
-  FROM dfRegistrations dR
-  JOIN dfHubDevices dD ON 1=1
-    AND dR.assignedHub = dD.iothub
-    AND dR.deviceId = dD.deviceId
-  GROUP BY dpsname, dR.deviceId
-  HAVING COUNT(1) > 1
-  """
+  # queryDuplicateRegistrations = """
+  # SELECT
+  #   dpsname,
+  #   dR.deviceId,
+  #   COUNT(1) sameRegistrationForMultipleHubs
+  # FROM dfRegistrations dR
+  # JOIN dfHubDevices dD ON 1=1
+  #   AND dR.assignedHub = dD.iothub
+  #   AND dR.deviceId = dD.deviceId
+  # GROUP BY dpsname, dR.deviceId
+  # HAVING COUNT(1) > 1
+  # """
   # Using Arrow to compress the results
 
   # tbl = duckdb.query(queryDevicesWithoutDPS).arrow()
