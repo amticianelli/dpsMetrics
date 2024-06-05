@@ -54,6 +54,32 @@ def generate_sas_token(uri, key, policy_name, expiry=3600):
 
     return 'SharedAccessSignature ' + parse.urlencode(rawtoken)
 
+async def deleteRegistration(dpsname, key, policy_name, registrationId):
+  defaultUri = f'{dpsname}.azure-devices-provisioning.net'
+  
+  dpsurl: str = f'https://{dpsname}.services.azure-devices-provisioning.net/registrations/{registrationId}?api-version=2021-10-01'
+
+  saskey: str = generate_sas_token(defaultUri, key, policy_name)
+
+  header: dict = {
+    'Content-type': 'application/json',
+    'Content-Encoding': 'utf-8',
+    'Authorization': f'{saskey}',
+  }
+
+  
+  async with httpx.AsyncClient() as client:
+    result = await client.delete(
+      url=dpsurl,
+      headers=header,
+      timeout=None
+    )
+
+    result.raise_for_status()
+
+    print(f'Registration {registrationId} deleted')
+
+
 async def getDPSData(dpsname, key, policy_name, con_test=False):
     defaultUri = f'{dpsname}.azure-devices-provisioning.net'
     allRegistrations: list[dict] = []
@@ -380,6 +406,8 @@ WHERE 1=1
   AND dD.iothub IS NULL
 """
 
+
+
 # Using Arrow to compress the results
 tbl = duckdb.query(queryDevicesWithoutDPS).arrow()
 df = tbl.to_pandas().to_csv('devicesWithoutDPS.csv')
@@ -391,3 +419,36 @@ tbl = duckdb.query(queryDuplicateRegistrations).arrow()
 df = tbl.to_pandas().to_csv('duplicateRegistrations.csv')
 
 print(f"Finishing {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+# Deleting duplicate registrations
+if data['deleteDPSRegistrations']:
+  print("Deleting duplicate registrations...")
+
+  queryDuplicateRegistrations = """
+    SELECT
+          dR.deviceId,
+          dR.assignedHub,
+          COUNT(1) sameRegistrationForMultipleHubs
+        FROM dfRegistrations dR
+        JOIN dfHubDevices dD ON 1=1
+          AND dR.assignedHub = dD.iothub
+          AND dR.deviceId = dD.deviceId
+        GROUP BY dR.deviceId,dR.assignedHub
+        HAVING COUNT(1) > 1
+    """
+
+  async def deleteRegistrations():
+    tbl = duckdb.query(queryDuplicateRegistrations).arrow()
+    df = tbl.to_pandas()
+    tasks = []
+    for index, row in df.iterrows():
+      for dps in dpS:
+        task = asyncio.create_task(deleteRegistration(dps['dpsname'], dps['key'], dps['policy_name'], row['deviceId']))
+        tasks.append(task)
+
+    await asyncio.gather(*tasks)
+
+  asyncio.run(deleteRegistrations())
+else:
+  print("Duplicate registrations will not be deleted")
+
